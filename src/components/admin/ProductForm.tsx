@@ -11,13 +11,13 @@ interface ProductFormProps {
 }
 
 export default function ProductForm({ product, onSubmit, onClose, isLoading }: ProductFormProps) {
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
+  const [formData, setFormData] = useState(() => ({
+    name: product?.name || '',
+    description: product?.description || '',
+    price: product?.price.toString() || '',
     image: null as File | null,
-  });
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  }));
+  const [imagePreview, setImagePreview] = useState<string | null>(product?.imageUrl || null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -32,8 +32,19 @@ export default function ProductForm({ product, onSubmit, onClose, isLoading }: P
       if (product.imageUrl) {
         setImagePreview(product.imageUrl);
       }
+      setErrors({});
+    } else {
+      setFormData({
+        name: '',
+        description: '',
+        price: '',
+        image: null,
+      });
+      setImagePreview(null);
+      setErrors({});
     }
-  }, [product]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

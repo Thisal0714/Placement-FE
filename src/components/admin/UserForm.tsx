@@ -11,13 +11,13 @@ interface UserFormProps {
 }
 
 export default function UserForm({ user, onSubmit, onClose, isLoading }: UserFormProps) {
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
+  const [formData, setFormData] = useState(() => ({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    email: user?.email || '',
     password: '',
-    role: 'Customer' as 'Administrator' | 'Customer',
-  });
+    role: (user?.role || 'Customer') as 'Administrator' | 'Customer',
+  }));
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -29,8 +29,19 @@ export default function UserForm({ user, onSubmit, onClose, isLoading }: UserFor
         password: '',
         role: user.role,
       });
+      setErrors({});
+    } else {
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        password: '',
+        role: 'Customer',
+      });
+      setErrors({});
     }
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};

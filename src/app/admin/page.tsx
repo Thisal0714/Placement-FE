@@ -13,7 +13,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const role = localStorage.getItem('role');
-    if (role === 'Admin') {
+    if (role === 'User') {
       router.push('/unauthorize');
     }
   }, [router]);

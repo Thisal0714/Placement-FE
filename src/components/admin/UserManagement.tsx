@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '@/lib/hooks/useUsers';
 import type { User, CreateUserData, UpdateUserData } from '@/types/user';
 import UserForm from './UserForm';
-import { toast } from 'sonner';
 
 export default function UserManagement() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -28,7 +27,7 @@ export default function UserManagement() {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
         await deleteUser.mutateAsync(id);
-      } catch (error) {
+      } catch {
         // Error is handled by the hook
       }
     }
@@ -43,7 +42,7 @@ export default function UserManagement() {
       }
       setIsFormOpen(false);
       setEditingUser(null);
-    } catch (error) {
+    } catch {
       // Error is handled by the hook
     }
   };
@@ -67,6 +66,7 @@ export default function UserManagement() {
 
       {isFormOpen && (
         <UserForm
+          key={editingUser?.id || 'new'}
           user={editingUser}
           onSubmit={handleSubmit}
           onClose={handleClose}

@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
-import type { User, CreateUserData, UpdateUserData } from '@/types/user';
+import type { CreateUserData, UpdateUserData } from '@/types/user';
 import { toast } from 'sonner';
 
 export function useUsers() {

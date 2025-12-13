@@ -27,7 +27,7 @@ export default function ProductManagement() {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
         await deleteProduct.mutateAsync(id);
-      } catch (error) {
+      } catch {
         // Error is handled by the hook
       }
     }
@@ -42,7 +42,7 @@ export default function ProductManagement() {
       }
       setIsFormOpen(false);
       setEditingProduct(null);
-    } catch (error) {
+    } catch {
       // Error is handled by the hook
     }
   };
@@ -66,6 +66,7 @@ export default function ProductManagement() {
 
       {isFormOpen && (
         <ProductForm
+          key={editingProduct?.id || 'new'}
           product={editingProduct}
           onSubmit={handleSubmit}
           onClose={handleClose}

@@ -12,6 +12,7 @@ async function apiRequest<T>(
   
   const response = await fetch(url, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
@@ -51,6 +52,7 @@ export const api = {
   auth: {
     login: (credentials: LoginCredentials) => apiRequest<LoginResponse>('/api/login', {
       method: 'POST',
+      credentials: 'include',
       body: JSON.stringify(credentials),
     }),
   },

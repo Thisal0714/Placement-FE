@@ -1,15 +1,38 @@
 "use client";
 
-//import Link from "next/link";
 import { useState } from "react";
-// import { useRouter } from "next/navigation";
-// import { toast } from "sonner";
-
-
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-    const[isLoading, setIsLoading] = useState();
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const response = await api.auth.login({ email, password });
+      toast.success("Login successful!");
+      if (response.token && response.user) {
+        localStorage.setItem("token", response.token);
+        localStorage.setItem("userId", response.user.id);
+        localStorage.setItem("email", response.user.email);
+        
+        if (!response.user.role_id || response.user.role_id === null) {
+          localStorage.setItem("role", "Admin");
+        }
+      }
+      router.push("/admin");
+    } catch (error: any) {
+      toast.error(error.message || "Login failed. Please check your credentials.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex w-full bg-white">
@@ -35,7 +58,10 @@ export default function LoginPage() {
 
         <div className="relative z-10 mt-8 sm:mx-auto sm:w-full sm:max-w-md">
           <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10">
-            <form className="space-y-6">
+            <form 
+              className="space-y-6"
+              onSubmit={handleSubmit}
+            >
               <div>
                 <label
                   htmlFor="email"
@@ -49,8 +75,9 @@ export default function LoginPage() {
                     name="email"
                     type="email"
                     autoComplete="email"
-                    //value={email}
-                    //onChange={(e) => setEmail(e.target.value)}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
                     className="appearance-none block w-full px-3 py-2 border text-black border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                     placeholder="Enter your email"
                   />
@@ -70,8 +97,9 @@ export default function LoginPage() {
                     name="password"
                     type="password"
                     autoComplete="current-password"
-                    // value={password}
-                    // onChange={(e) => setPassword(e.target.value)}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
                     className="appearance-none block w-full px-3 py-2 border text-black border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                     placeholder="Enter your password"
                   />
@@ -108,7 +136,7 @@ export default function LoginPage() {
               <div>
                 <button
                   type="submit"
-                //   disabled={isLoading}
+                  disabled={isLoading}
                   className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isLoading ? (
@@ -141,30 +169,6 @@ export default function LoginPage() {
                 </button>
               </div>
             </form>
-
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-black" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-black font-semibold">
-                    Test Credentials
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-6 bg-gray-50 p-4 rounded-md">
-                <div className="text-xs text-gray-500 space-y-1">
-                  <p>
-                    <strong>Email:</strong> testuser@studyhive.com
-                  </p>
-                  <p>
-                    <strong>Password:</strong> test
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

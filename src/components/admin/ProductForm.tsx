@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import type { Product, CreateProductData, UpdateProductData } from '@/types/product';
-
+import { uploadImageToFirebase } from '@/lib/utils/imageUpload';
 interface ProductFormProps {
   product?: Product | null;
   onSubmit: (data: CreateProductData | UpdateProductData) => void;
@@ -14,10 +14,10 @@ export default function ProductForm({ product, onSubmit, onClose, isLoading }: P
   const [formData, setFormData] = useState(() => ({
     name: product?.name || '',
     description: product?.description || '',
-    price: product?.price.toString() || '',
+    price: product?.price || '',
     image: null as File | null,
   }));
-  const [imagePreview, setImagePreview] = useState<string | null>(product?.imageUrl || null);
+  const [imagePreview, setImagePreview] = useState<string | null>(product?.image_url || null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -26,11 +26,11 @@ export default function ProductForm({ product, onSubmit, onClose, isLoading }: P
       setFormData({
         name: product.name,
         description: product.description,
-        price: product.price.toString(),
+        price: product.price,
         image: null,
       });
-      if (product.imageUrl) {
-        setImagePreview(product.imageUrl);
+      if (product.image_url) {
+        setImagePreview(product.image_url);
       }
       setErrors({});
     } else {
@@ -86,22 +86,25 @@ export default function ProductForm({ product, onSubmit, onClose, isLoading }: P
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!validate()) return;
 
-    const submitData: CreateProductData | UpdateProductData = {
-      name: formData.name.trim(),
-      description: formData.description.trim(),
-      price: parseFloat(formData.price),
-    };
-
-    if (formData.image) {
-      (submitData as CreateProductData | UpdateProductData).image = formData.image;
-    }
-
-    onSubmit(submitData);
+  const submitData: CreateProductData | UpdateProductData = {
+    name: formData.name.trim(),
+    description: formData.description.trim(),
+    price: formData.price,
   };
+
+  if (formData.image) {
+    const imageUrl = await uploadImageToFirebase(formData.image);
+    submitData.image_url = imageUrl; 
+  } else if (product?.image_url) {
+    submitData.image_url = product.image_url; 
+  }
+
+  onSubmit(submitData);
+};
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -142,7 +145,7 @@ export default function ProductForm({ product, onSubmit, onClose, isLoading }: P
                 {imagePreview ? 'Change Image' : 'Choose Image'}
               </button>
               {errors.image && (
-                <p className="mt-1 text-sm text-danger">{errors.image}</p>
+                <p className="mt-1 text-sm text-red-600">{errors.image}</p>
               )}
             </div>
           </div>
@@ -162,7 +165,7 @@ export default function ProductForm({ product, onSubmit, onClose, isLoading }: P
               placeholder="Enter product name"
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-danger">{errors.name}</p>
+              <p className="mt-1 text-sm text-red-600">{errors.name}</p>
             )}
           </div>
 
@@ -181,7 +184,7 @@ export default function ProductForm({ product, onSubmit, onClose, isLoading }: P
               placeholder="Enter product description"
             />
             {errors.description && (
-              <p className="mt-1 text-sm text-danger">{errors.description}</p>
+              <p className="mt-1 text-sm text-red-600">{errors.description}</p>
             )}
           </div>
 
@@ -190,7 +193,7 @@ export default function ProductForm({ product, onSubmit, onClose, isLoading }: P
               Price *
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-2 text-muted-foreground">$</span>
+              <span className="absolute left-3 top-2 text-muted-foreground">Rs.</span>
               <input
                 id="price"
                 type="number"
@@ -205,7 +208,7 @@ export default function ProductForm({ product, onSubmit, onClose, isLoading }: P
               />
             </div>
             {errors.price && (
-              <p className="mt-1 text-sm text-danger">{errors.price}</p>
+              <p className="mt-1 text-sm text-red-600">{errors.price}</p>
             )}
           </div>
 
@@ -213,14 +216,14 @@ export default function ProductForm({ product, onSubmit, onClose, isLoading }: P
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors"
+              className="px-4 py-2 border border-border cursor-pointer rounded-md hover:bg-muted transition-colors"
               disabled={isLoading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-primary cursor-pointer text-primary-foreground rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isLoading}
             >
               {isLoading ? 'Saving...' : product ? 'Update Product' : 'Create Product'}

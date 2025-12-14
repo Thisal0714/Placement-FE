@@ -110,12 +110,12 @@ export default function UserForm({ user, onSubmit, onClose, isLoading }: UserFor
                 value={formData.firstName}
                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                 className={`w-full px-3 py-2 border rounded-md ${
-                  errors.firstName ? 'border-danger' : 'border-input'
+                  errors.firstName ? 'border-red-600' : 'border-input'
                 } focus:outline-none focus:ring-2 focus:ring-primary`}
                 placeholder="Enter first name"
               />
               {errors.firstName && (
-                <p className="mt-1 text-sm text-danger">{errors.firstName}</p>
+                <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>
               )}
             </div>
 
@@ -129,12 +129,12 @@ export default function UserForm({ user, onSubmit, onClose, isLoading }: UserFor
                 value={formData.lastName}
                 onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                 className={`w-full px-3 py-2 border rounded-md ${
-                  errors.lastName ? 'border-danger' : 'border-input'
+                  errors.lastName ? 'border-red-600' : 'border-input'
                 } focus:outline-none focus:ring-2 focus:ring-primary`}
                 placeholder="Enter last name"
               />
               {errors.lastName && (
-                <p className="mt-1 text-sm text-danger">{errors.lastName}</p>
+                <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>
               )}
             </div>
           </div>
@@ -148,13 +148,13 @@ export default function UserForm({ user, onSubmit, onClose, isLoading }: UserFor
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-md ${
-                errors.email ? 'border-danger' : 'border-input'
+                className={`w-full px-3 py-2 border rounded-md ${
+                errors.email ? 'border-red-600' : 'border-input'
               } focus:outline-none focus:ring-2 focus:ring-primary`}
               placeholder="Enter email address"
             />
             {errors.email && (
-              <p className="mt-1 text-sm text-danger">{errors.email}</p>
+              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
             )}
           </div>
 
@@ -167,13 +167,13 @@ export default function UserForm({ user, onSubmit, onClose, isLoading }: UserFor
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-md ${
-                errors.password ? 'border-danger' : 'border-input'
+                className={`w-full px-3 py-2 border rounded-md ${
+                errors.password ? 'border-red-600' : 'border-input'
               } focus:outline-none focus:ring-2 focus:ring-primary`}
               placeholder="Enter password"
             />
             {errors.password && (
-              <p className="mt-1 text-sm text-danger">{errors.password}</p>
+              <p className="mt-1 text-sm text-red-600">{errors.password}</p>
             )}
           </div>
 
@@ -196,14 +196,14 @@ export default function UserForm({ user, onSubmit, onClose, isLoading }: UserFor
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors"
+              className="px-4 py-2 border border-border cursor-pointer rounded-md hover:bg-muted transition-colors"
               disabled={isLoading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-primary cursor-pointer text-primary-foreground rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isLoading}
             >
               {isLoading ? 'Saving...' : user ? 'Update User' : 'Create User'}

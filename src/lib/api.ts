@@ -1,6 +1,8 @@
-import type { User, CreateUserData, UpdateUserData } from '@/types/user';
+import type { CreateUserData, UpdateUserData, ApiUser } from '@/types/user';
 import type { Product, CreateProductData, UpdateProductData } from '@/types/product';
 import type { LoginCredentials, LoginResponse } from '@/types/auth';
+import { transformApiUsers, transformApiUser, transformCreateUserData, transformUpdateUserData } from '@/lib/utils/userTransform';
+import { uploadImageToFirebase } from '@/lib/utils/imageUpload';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -10,33 +12,21 @@ async function apiRequest<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string>),
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
   const response = await fetch(url, {
     ...options,
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-    throw new Error(error.message || `HTTP error! status: ${response.status}`);
-  }
-
-  return response.json();
-}
-
-async function apiRequestFormData<T>(
-  endpoint: string,
-  formData: FormData,
-  method: string = 'POST'
-): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  
-  const response = await fetch(url, {
-    method,
-    body: formData,
+    headers,
   });
 
   if (!response.ok) {
@@ -48,7 +38,6 @@ async function apiRequestFormData<T>(
 }
 
 export const api = {
-  // Auth endpoints
   auth: {
     login: (credentials: LoginCredentials) => apiRequest<LoginResponse>('/api/login', {
       method: 'POST',
@@ -57,48 +46,88 @@ export const api = {
     }),
   },
   
-  // User endpoints
   users: {
-    list: () => apiRequest<{ users: User[] }>('/api'),
-    get: (id: string) => apiRequest<{ user: User }>(`/users/${id}`),
-    create: (data: CreateUserData) => apiRequest<{ user: User }>('/users', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-    update: (id: string, data: UpdateUserData) => apiRequest<{ user: User }>(`/users/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-    delete: (id: string) => apiRequest<{ message: string }>(`/users/${id}`, {
+    list: async () => {
+      const response = await apiRequest<{ success: boolean; data: { users: ApiUser[] }; message: string | null }>('/api/users');
+      return { users: transformApiUsers(response.data.users) };
+    },
+    get: async (id: string) => {
+      const response = await apiRequest<{ success: boolean; data: { user: ApiUser }; message: string | null }>(`/api/users/${id}`);
+      return { user: transformApiUser(response.data.user) };
+    },
+    create: async (data: CreateUserData) => {
+      const apiData = transformCreateUserData(data);
+      const response = await apiRequest<{ success: boolean; data: { user: ApiUser }; message: string | null }>('/api/register', {
+        method: 'POST',
+        body: JSON.stringify(apiData),
+      });
+      return { user: transformApiUser(response.data.user) };
+    },
+    update: async (id: string, data: UpdateUserData) => {
+      const apiData = transformUpdateUserData(data);
+      const response = await apiRequest<{ success: boolean; data: { user: ApiUser }; message: string | null }>(`/api/users/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(apiData),
+      });
+      return { user: transformApiUser(response.data.user) };
+    },
+    delete: (id: string) => apiRequest<{ success: boolean; data: null; message: string | null }>(`/api/users/${id}`, {
       method: 'DELETE',
     }),
   },
   
-  // Product endpoints
   products: {
-    list: () => apiRequest<{ products: Product[] }>('/api/products'),
-    get: (id: string) => apiRequest<{ product: Product }>(`/api/products/${id}`),
-    create: (data: CreateProductData) => {
-      const formData = new FormData();
-      formData.append('name', data.name);
-      formData.append('description', data.description);
-      formData.append('price', data.price.toString());
-      if (data.image) {
-        formData.append('image', data.image);
-      }
-      return apiRequestFormData<{ product: Product }>('/api/products', formData, 'POST');
+    list: async () => {
+      const response = await apiRequest<{ success: boolean; data: { products: Product[] }; message: string | null }>('/api/products');
+      return response.data.products;
     },
-    update: (id: string, data: UpdateProductData) => {
-      const formData = new FormData();
-      formData.append('name', data.name);
-      formData.append('description', data.description);
-      formData.append('price', data.price.toString());
-      if (data.image) {
-        formData.append('image', data.image);
-      }
-      return apiRequestFormData<{ product: Product }>(`/api/products/${id}`, formData, 'PUT');
+    get: async (id: string) => {
+      const response = await apiRequest<{ success: boolean; data: { product: Product }; message: string | null }>(`/api/products/${id}`);
+      return response.data.product;
     },
-    delete: (id: string) => apiRequest<{ message: string }>(`/api/products/${id}`, {
+    create: async (data: CreateProductData) => {
+      let imageUrl = '';
+      if ('image' in data && data.image instanceof File) {
+        imageUrl = await uploadImageToFirebase(data.image);
+      } else if (data.image_url) {
+        imageUrl = data.image_url;
+      }
+
+      const payload = {
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        image_url: imageUrl,
+      };
+
+      const response = await apiRequest<{ success: boolean; data: { product: Product }; message: string | null }>('/api/products', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return response.data.product;
+    },
+    update: async (id: string, data: UpdateProductData) => {
+      let imageUrl = '';
+      if ('image' in data && data.image instanceof File) {
+        imageUrl = await uploadImageToFirebase(data.image);
+      } else if (data.image_url) {
+        imageUrl = data.image_url;
+      }
+
+      const payload = {
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        ...(imageUrl && { image_url: imageUrl }),
+      };
+
+      const response = await apiRequest<{ success: boolean; data: { product: Product }; message: string | null }>(`/api/products/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      return response.data.product;
+    },
+    delete: (id: string) => apiRequest<{ success: boolean; data: null; message: string | null }>(`/api/products/${id}`, {
       method: 'DELETE',
     }),
   },

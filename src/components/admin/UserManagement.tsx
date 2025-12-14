@@ -4,10 +4,13 @@ import { useState } from 'react';
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '@/lib/hooks/useUsers';
 import type { User, CreateUserData, UpdateUserData } from '@/types/user';
 import UserForm from './UserForm';
+import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 
 export default function UserManagement() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const { data: users = [], isLoading } = useUsers();
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
@@ -23,19 +26,30 @@ export default function UserManagement() {
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        await deleteUser.mutateAsync(id);
-      } catch {
-        // Error is handled by the hook
-      }
+  const handleDelete = (user: User) => {
+    setUserToDelete(user);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return;
+
+    try {
+      await deleteUser.mutateAsync(userToDelete.id);
+      setIsDeleteDialogOpen(false);
+      setUserToDelete(null);
+    } catch {
     }
+  };
+
+  const handleCancelDelete = () => {
+    setIsDeleteDialogOpen(false);
+    setUserToDelete(null);
   };
 
   const handleSubmit = async (data: CreateUserData | UpdateUserData) => {
     try {
-      if (editingUser) {
+      if (editingUser?.id) {
         await updateUser.mutateAsync({ id: editingUser.id, data: data as UpdateUserData });
       } else {
         await createUser.mutateAsync(data as CreateUserData);
@@ -43,7 +57,6 @@ export default function UserManagement() {
       setIsFormOpen(false);
       setEditingUser(null);
     } catch {
-      // Error is handled by the hook
     }
   };
 
@@ -58,7 +71,7 @@ export default function UserManagement() {
         <h2 className="text-2xl font-bold text-foreground">User Management</h2>
         <button
           onClick={handleCreate}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary-hover transition-colors"
+          className="px-4 py-2 bg-primary text-primary-foreground cursor-pointer rounded-md hover:bg-primary-hover transition-colors"
         >
           + Create User
         </button>
@@ -121,13 +134,13 @@ export default function UserManagement() {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
                         onClick={() => handleEdit(user)}
-                        className="text-primary hover:text-primary-hover mr-4"
+                        className="text-primary hover:text-primary-hover mr-4 cursor-pointer"
                       >
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDelete(user.id)}
-                        className="text-danger hover:text-danger-hover"
+                        onClick={() => handleDelete(user)}
+                        className="text-danger hover:text-danger-hover cursor-pointer"
                         disabled={deleteUser.isPending}
                       >
                         Delete
@@ -140,6 +153,15 @@ export default function UserManagement() {
           </div>
         )}
       </div>
+
+      <DeleteConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Delete User"
+        message={`Are you sure you want to delete "${userToDelete?.firstName} ${userToDelete?.lastName}"? This action cannot be undone.`}
+        isLoading={deleteUser.isPending}
+      />
     </div>
   );
 }

@@ -1,22 +1,49 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import UserManagement from '@/components/admin/UserManagement';
 import ProductManagement from '@/components/admin/ProductManagement';
+import { isAdminRole } from '@/lib/constants/roles';
 
 type Tab = 'users' | 'products';
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('users');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [initials] = useState(() => {
+    const first = typeof window !== 'undefined' ? localStorage.getItem('firstName') || '' : '';
+    const last = typeof window !== 'undefined' ? localStorage.getItem('lastName') || '' : '';
+    return (((first[0] || '') + (last[0] || '')).toUpperCase() || 'U');
+  });
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  const handleLogout = () => {
+    try {
+      localStorage.clear();
+    } catch (e) {
+      // ignore
+    }
+    router.push('/login');
+  };
 
   useEffect(() => {
-    const role = localStorage.getItem('role');
-    if (role === 'User') {
+    const roleId = localStorage.getItem('roleId');
+    if (!isAdminRole(roleId)) {
       router.push('/unauthorize');
     }
   }, [router]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (isMenuOpen && menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMenuOpen]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -25,10 +52,39 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <h1 className="text-2xl font-bold text-foreground">Admin Backoffice</h1>
-            <div className="flex items-center gap-4">
-              <button className="text-sm text-foreground hover:text-primary">
-                Logout
+            <div className="flex items-center gap-4 relative" ref={menuRef}>
+              <button
+                onClick={() => setIsMenuOpen((s) => !s)}
+                aria-haspopup="true"
+                aria-expanded={isMenuOpen}
+                className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold shadow"
+                title="User menu"
+              >
+                {initials}
               </button>
+
+              {isMenuOpen && (
+                <div className="absolute top-full right-0 mt-2 w-44 bg-white border border-border rounded-md shadow-lg z-50 overflow-hidden">
+                  <button
+                    onClick={() => {
+                      router.push('/products');
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted"
+                  >
+                    Products
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-red-100 hover:text-red-600"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { WarningIcon } from "../util/icons";
+import { getRoleType } from "@/lib/constants/roles";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,8 +19,8 @@ export default function LoginPage() {
   
     try {
       const response = await api.auth.login({ email, password });
-  
-      const { token, user } = response;
+
+      const { token, user } = response.data;
   
       if (!token || !user) {
         throw new Error("Invalid login response");
@@ -31,10 +32,11 @@ export default function LoginPage() {
       localStorage.setItem("userId", user.id);
       localStorage.setItem("email", user.email);
   
-      const role = user.role_id ? user.role_id : "User";
+      const role = getRoleType(user.role_id);
       localStorage.setItem("role", role);
+      localStorage.setItem("roleId", user.role_id);
   
-      if (role === "Admin") {
+      if (role === "ADMIN") {
         router.push("/admin");
       } else {
         router.push("/products");

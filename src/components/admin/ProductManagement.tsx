@@ -4,10 +4,13 @@ import { useState } from 'react';
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from '@/lib/hooks/useProducts';
 import type { Product, CreateProductData, UpdateProductData } from '@/types/product';
 import ProductForm from './ProductForm';
+import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 
 export default function ProductManagement() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const { data: products = [], isLoading } = useProducts();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
@@ -24,12 +27,18 @@ export default function ProductManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await deleteProduct.mutateAsync(id);
-      } catch {
-        // Error is handled by the hook
-      }
+    setDeletingProductId(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingProductId) return;
+    try {
+      await deleteProduct.mutateAsync(deletingProductId);
+    } catch {
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setDeletingProductId(null);
     }
   };
 
@@ -43,7 +52,6 @@ export default function ProductManagement() {
       setIsFormOpen(false);
       setEditingProduct(null);
     } catch {
-      // Error is handled by the hook
     }
   };
 
@@ -74,6 +82,22 @@ export default function ProductManagement() {
         />
       )}
 
+      <DeleteConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => {
+          if (!deleteProduct.isPending) {
+            setIsDeleteDialogOpen(false);
+            setDeletingProductId(null);
+          }
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Delete Product"
+        message="Are you sure you want to delete this product? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        isLoading={deleteProduct.isPending}
+      />
+
       <div className="bg-white rounded-lg shadow-sm border border-border overflow-hidden">
         {isLoading ? (
           <div className="p-8 text-center text-muted-foreground">Loading products...</div>
@@ -86,10 +110,10 @@ export default function ProductManagement() {
                 key={product.id}
                 className="bg-white border border-border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
               >
-                {product.imageUrl && (
+                {product.image_url && (
                   <div className="aspect-video bg-muted overflow-hidden">
                     <img
-                      src={product.imageUrl}
+                      src={product.image_url}
                       alt={product.name}
                       className="w-full h-full object-cover"
                     />
@@ -102,18 +126,18 @@ export default function ProductManagement() {
                   </p>
                   <div className="flex justify-between items-center">
                     <span className="text-xl font-bold text-primary">
-                      ${product.price.toFixed(2)}
+                      Rs. {parseFloat(product.price).toFixed(2)}
                     </span>
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleEdit(product)}
-                        className="px-3 py-1 text-sm text-primary hover:text-primary-hover"
+                        className="px-3 py-1 text-sm text-primary hover:text-primary-hover cursor-pointer"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDelete(product.id)}
-                        className="px-3 py-1 text-sm text-danger hover:text-danger-hover"
+                        className="px-3 py-1 text-sm text-danger cursor-pointer hover:text-red-600"
                         disabled={deleteProduct.isPending}
                       >
                         Delete

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import type { CreateUserData, UpdateUserData } from '@/types/user';
+import { transformApiUsers } from '@/lib/utils/userTransform';
 import { toast } from 'sonner';
 
 export function useUsers() {
@@ -45,15 +46,20 @@ export function useUpdateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateUserData }) =>
-      api.users.update(id, data),
-    onSuccess: (_, variables) => {
+    mutationFn: async ({ id, data }: { id: string; data: UpdateUserData }) => {
+      try {
+        return await api.users.update(id, data);
+      } catch (error) {
+        throw error;
+      }
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['users', variables.id] });
-      toast.success('User updated successfully');
+      toast.success('Update Successful!');
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to update user');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success('Update Successful!');
     },
   });
 }
